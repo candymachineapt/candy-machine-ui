@@ -1,4 +1,4 @@
-import {Button, Container, TextInput, Title} from "@mantine/core";
+import {Button, Container, TextInput, Title, Notification, Space } from "@mantine/core";
 import {useParams} from "react-router-dom";
 import {useEffect, useState} from "react";
 import useAptosClient from "../hooks/aptosClient/useAptosClient";
@@ -6,6 +6,7 @@ import {CandyMachineState, CreateMintRequest} from "../services/aptos/client/Apt
 import { useDebouncedValue } from "@mantine/hooks";
 import { EntryFunctionPayload } from "../services/CommonTypes";
 import { useWallet } from "@manahippo/aptos-wallet-adapter";
+import { IconX } from "@tabler/icons";
 
 export default function MintPage() {
     const {signAndSubmitTransaction, connect} = useWallet();
@@ -14,7 +15,7 @@ export default function MintPage() {
     const [address, setAddress] = useState(candyMachineAddress)
     const [debounced] = useDebouncedValue(address, 200);
 
-    const [error, setError] = useState<string>();
+    const [error, setError] = useState<string | null>();
 
     const handleChange = (e:any) => setAddress(e.target.value);
 
@@ -54,26 +55,33 @@ export default function MintPage() {
                 return;
             }
 
-            setError("");
+            setError(null);
         });
-    }, [debounced, setError]);
+    }, [candyMachineService, debounced, setError]);
 
     return (
         <Container size="sm">
             <Title align="center">
                 Mint Page
             </Title>
+            <TextInput
+                disabled={candyMachineAddress!==undefined}
+                name="candyMachineAddress"
+                label="Candy machine address"
+                mt="md"
+                value={address}
+                onChange={handleChange}
+                withAsterisk/>
+            <Space h="md"/>
             <form onSubmit={handleSubmit}>
-                <TextInput
-                    disabled={candyMachineAddress!==undefined}
-                    name="candyMachineAddress"
-                    label="Candy machine address"
-                    mt="md"
-                    value={address}
-                    onChange={handleChange}
-                    withAsterisk
-                    error={error}/>
-                <Button type="submit" mt="md">Mint</Button>
+                { error &&
+                    <Notification icon={<IconX size={18} />} color="red" disallowClose>
+                        {error}
+                    </Notification>
+                }
+                { !error &&
+                    <Button fullWidth type="submit" mt="md">Mint</Button>
+                }
             </form>
         </Container>
     )
