@@ -1,18 +1,22 @@
-import {Button, Container, TextInput, Title, Notification, Space } from "@mantine/core";
+import {Button, Container, Notification, Space, Text, TextInput, Title} from "@mantine/core";
 import {useParams} from "react-router-dom";
-import {useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import useAptosClient from "../hooks/aptosClient/useAptosClient";
 import {CandyMachineState, CreateMintRequest} from "../services/aptos/client/AptosTypes";
-import { useDebouncedValue } from "@mantine/hooks";
-import { EntryFunctionPayload } from "../services/CommonTypes";
-import { useWallet } from "@manahippo/aptos-wallet-adapter";
-import { IconX } from "@tabler/icons";
+import {useDebouncedValue, useDidUpdate} from "@mantine/hooks";
+import {EntryFunctionPayload} from "../services/CommonTypes";
+import {useWallet} from "@manahippo/aptos-wallet-adapter";
+import {IconX, IconConfetti} from "@tabler/icons";
 
 export default function MintPage() {
     const {signAndSubmitTransaction, connect} = useWallet();
     const {client, candyMachineService} = useAptosClient();
     const {candyMachineAddress} = useParams();
     const [address, setAddress] = useState(candyMachineAddress)
+    const [fixedSellPrice, setFixedSellPrice] = useState<string | null>(null)
+    const [totalCandies, setTotalCandies] = useState<number | null>(null)
+    const [soldCandies, setSoldCandies] = useState<number | null>(null)
+    const [isSoldOut, setIsSoldOut] = useState<boolean>(false)
     const [debounced] = useDebouncedValue(address, 200);
 
     const [error, setError] = useState<string | null>();
@@ -38,7 +42,12 @@ export default function MintPage() {
         await client.waitForTransactionWithResult(transactionHash.hash);
     }
 
-    useEffect(() => {
+    useDidUpdate(() => {
+        setFixedSellPrice(null);
+        setTotalCandies(null);
+        setSoldCandies(null);
+        setIsSoldOut(false);
+
         if (!debounced) {
             setError("Candy machine address is needed");
             return;
@@ -50,14 +59,24 @@ export default function MintPage() {
                 return;
             }
 
+            if (info.state === CandyMachineState.Final) {
+                setError(null);
+                setIsSoldOut(true);
+                return;
+            }
+
             if (info.state !== CandyMachineState.Active) {
                 setError("Candy machine is not active");
                 return;
             }
 
+            setFixedSellPrice(info.fixed_sell_price.toFixed(2));
+            setSoldCandies(info.sold_candies);
+            setTotalCandies(info.candies.length);
+
             setError(null);
         });
-    }, [candyMachineService, debounced, setError]);
+    }, [candyMachineService, debounced, setError, setIsSoldOut, setFixedSellPrice, setSoldCandies, setTotalCandies]);
 
     return (
         <Container size="sm">
@@ -80,7 +99,21 @@ export default function MintPage() {
                     </Notification>
                 }
                 { !error &&
-                    <Button fullWidth type="submit" mt="md">Mint</Button>
+                    <>
+                    { !isSoldOut &&
+                        <>
+                            <Text>Minted: {soldCandies} / {totalCandies}</Text>
+                            <Text>Mint Price: {fixedSellPrice} APT</Text>
+                            <Button fullWidth type="submit" mt="md">Mint</Button>
+                        </>
+                    }
+
+                    { isSoldOut &&
+                        <>
+                            <Notification icon={<IconConfetti size={18} />} title="Sold Out!" color="green" disallowClose></Notification>
+                        </>
+                    }
+                    </>
                 }
             </form>
         </Container>
