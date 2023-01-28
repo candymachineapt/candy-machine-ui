@@ -9,6 +9,7 @@ import {WithdrawButton} from "./WithdrawButton";
 import {BalanceOfCandyMachine} from "./BalanceOfCandyMachine";
 import addressOperation from "../utils/address";
 import {ShareMintPage} from "./ShareMintPage";
+import {BuildYourMintPageButton} from "./BuildYourMintPageButton";
 
 interface CandyMachineCardProps {
     candyMachineInfo: CandyMachineInfo;
@@ -78,6 +79,13 @@ export function CandyMachineCard({candyMachineInfo, onChangeCallback}: CandyMach
             <MintButton candyMachineAddress={candyMachineInfo.address} onChangeCallback={onChangeCallback}/>
             <Space h="md"/>
             <ShareMintPage candyMachineAddress={candyMachineInfo.address} />
+            <Divider
+                my="xs"
+                variant="dashed"
+                labelPosition="center"
+                label={<Text>or</Text>}
+            />
+            <BuildYourMintPageButton />
             </>
             }
             <Divider
